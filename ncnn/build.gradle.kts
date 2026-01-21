@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
+    id("maven-publish")
 }
 
 android {
@@ -40,4 +41,17 @@ android {
 }
 
 dependencies {
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["release"])
+                groupId = "com.tencent.ppocrv5ncnn"
+                artifactId = "ppocrv5ncnn"
+                version = "1.0.0"
+            }
+        }
+    }
 }
