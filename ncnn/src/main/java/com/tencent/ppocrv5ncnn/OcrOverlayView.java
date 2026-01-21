@@ -14,6 +14,7 @@ import java.util.List;
 
 public class OcrOverlayView extends View {
 
+    public static final int padding = 2;
     private List<BasePolygonResultModel> mResultModelList;
     private Paint paint;
     private Paint textPaint;
@@ -21,6 +22,8 @@ public class OcrOverlayView extends View {
     private int imgWidth;
     private int imgHeight;
     private boolean drawText = false;
+    private final Rect scaledRect = new Rect();
+    private final Point originPt = new Point(0, 0);
 
     public OcrOverlayView(Context context) {
         super(context);
@@ -43,7 +46,7 @@ public class OcrOverlayView extends View {
         paint = new Paint();
         paint.setColor(Color.RED);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(5);
+        paint.setStrokeWidth(padding);
 
         textPaint = new Paint();
         textPaint.setColor(Color.BLACK);
@@ -90,12 +93,12 @@ public class OcrOverlayView extends View {
 
         for (BasePolygonResultModel model : mResultModelList) {
             // Draw rectangle border
-            Rect rect = model.getRect(1.0f, new Point(0, 0));
-            Rect scaledRect = new Rect(
-                (int)(offsetX + rect.left * scale),
-                (int)(offsetY + rect.top * scale),
-                (int)(offsetX + rect.right * scale),
-                (int)(offsetY + rect.bottom * scale)
+            Rect rect = model.getRect(1.0f, originPt);
+            scaledRect.set(
+                    (int) (offsetX + rect.left * scale),
+                    (int) (offsetY + rect.top * scale),
+                    (int) (offsetX + rect.right * scale),
+                    (int) (offsetY + rect.bottom * scale)
             );
 
             path.reset();
@@ -110,7 +113,7 @@ public class OcrOverlayView extends View {
             if (drawText) {
                 String text = model.getName();
                 if (text != null && !text.isEmpty()) {
-                    canvas.drawText(text, scaledRect.left + 5, scaledRect.bottom - 5, textPaint);
+                    canvas.drawText(text, scaledRect.left + padding, scaledRect.bottom - padding, textPaint);
                 }
             }
         }

@@ -18,8 +18,8 @@
         <item>turnip</item>
     </string-array>
 
-    <string name="tab_image">Image</string>
-    <string name="tab_camera">Camera</string>
-    <string name="select_image">Select Image</string>
-    <string name="switch_camera">Switch Camera</string>
+    <string name="tab_image">图片</string>
+    <string name="tab_camera">摄像头</string>
+    <string name="select_image">选择图片</string>
+    <string name="switch_camera">切换摄像头</string>
 </resources>

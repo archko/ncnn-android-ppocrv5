@@ -28,4 +28,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ppocrv5ncnn"
+include(":ncnn")
 include(":app")

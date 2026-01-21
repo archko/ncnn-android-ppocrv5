@@ -11,7 +11,7 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-package com.tencent.ppocrv5ncnn;
+package com.tencent.ppocrv5ncnn.test;
 
 import android.Manifest;
 import android.app.Activity;
@@ -35,6 +35,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.tencent.ppocrv5ncnn.BasePolygonResultModel;
+import com.tencent.ppocrv5ncnn.OcrOverlayView;
+import com.tencent.ppocrv5ncnn.PPOCRv5Ncnn;
 
 import java.util.ArrayList;
 import java.util.List;
