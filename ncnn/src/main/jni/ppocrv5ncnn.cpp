@@ -36,6 +36,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <sstream>
+
 #if __ARM_NEON
 
 #include <arm_neon.h>
@@ -267,54 +269,65 @@ JNIEXPORT jboolean JNICALL Java_com_tencent_ppocrv5ncnn_PPOCRv5Ncnn_setOutputWin
 
 // public native String detectAndRecognize(Bitmap bitmap);
 JNIEXPORT jstring JNICALL Java_com_tencent_ppocrv5ncnn_PPOCRv5Ncnn_detectAndRecognize(JNIEnv *env, jobject thiz, jobject bitmap) {
-    if (!g_ppocrv5) {
-        return env->NewStringUTF("");
-    }
+    if (!g_ppocrv5) return env->NewStringUTF("");
 
     AndroidBitmapInfo info;
-    int ret = AndroidBitmap_getInfo(env, bitmap, &info);
-    if (ret != ANDROID_BITMAP_RESULT_SUCCESS) {
-        return env->NewStringUTF("");
-    }
-
-    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-        return env->NewStringUTF("");
-    }
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) return env->NewStringUTF("");
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) return env->NewStringUTF("");
 
     void* pixels;
-    ret = AndroidBitmap_lockPixels(env, bitmap, &pixels);
-    if (ret != ANDROID_BITMAP_RESULT_SUCCESS) {
-        return env->NewStringUTF("");
-    }
+    if (AndroidBitmap_lockPixels(env, bitmap, &pixels) != ANDROID_BITMAP_RESULT_SUCCESS) return env->NewStringUTF("");
 
+    // 1. 原始 Mat 构建
     cv::Mat rgba(info.height, info.width, CV_8UC4, pixels);
     cv::Mat rgb;
     cv::cvtColor(rgba, rgb, cv::COLOR_RGBA2RGB);
-
     AndroidBitmap_unlockPixels(env, bitmap);
 
-    std::vector<Object> objects;
-    g_ppocrv5->detect_and_recognize(rgb, objects);
+    // 2. 智能缩放 (核心优化：防止大图撑爆 CPU)
+    // 如果 PDF 渲染图边长超过 1024，进行等比例缩放
+    float scale = 1.0f;
+    int max_side_limit = 1024; 
+    cv::Mat input_rgb;
+    if (std::max(rgb.cols, rgb.rows) > max_side_limit) {
+        scale = (float)max_side_limit / std::max(rgb.cols, rgb.rows);
+        cv::resize(rgb, input_rgb, cv::Size(), scale, scale, cv::INTER_LINEAR);
+    } else {
+        input_rgb = rgb;
+    }
 
-    std::string result;
+    // 3. 执行识别
+    std::vector<Object> objects;
+    g_ppocrv5->detect_and_recognize(input_rgb, objects);
+
+    // 4. 高效拼接结果
+    std::stringstream ss;
     for (size_t i = 0; i < objects.size(); ++i) {
         const Object& obj = objects[i];
-        cv::Rect boundingRect = obj.rrect.boundingRect();
-        result += std::to_string(boundingRect.x) + "," + std::to_string(boundingRect.y) + "," + std::to_string(boundingRect.width) + "," + std::to_string(boundingRect.height) + ",";
-        std::string text;
+        
+        // 坐标还原：如果之前缩放了，这里要把坐标乘回来
+        cv::Rect r = obj.rrect.boundingRect();
+        int x = (int)(r.x / scale);
+        int y = (int)(r.y / scale);
+        int w = (int)(r.width / scale);
+        int h = (int)(r.height / scale);
+
+        ss << x << "," << y << "," << w << "," << h << ",";
+
+        // 文本提取
         for (size_t j = 0; j < obj.text.size(); ++j) {
             int id = obj.text[j].id;
             if (id >= 0 && id < character_dict_size) {
-                text += character_dict[id];
+                ss << character_dict[id];
             }
         }
-        result += text;
+
         if (i < objects.size() - 1) {
-            result += ";";
+            ss << ";";
         }
     }
 
-    return env->NewStringUTF(result.c_str());
+    return env->NewStringUTF(ss.str().c_str());
 }
 
 }
